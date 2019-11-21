@@ -6,3 +6,5 @@ niimasker.egg-info
 playground/
 .pytest_cache/
 tests/data-dir
+docs/_build/
+build/
