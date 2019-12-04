@@ -104,7 +104,7 @@ def _cli_parser():
                         help='Configuration .json file as an alternative to '
                              'command-line arguments. See online documentation '
                              'for what keys to include.')
-    return parser.parse_args()
+    return parser
 
 
 def _check_glob(x):
@@ -163,7 +163,7 @@ def _merge_params(cli, config):
 
 def main():
     """Primary entrypoint in program"""
-    params = vars(_cli_parser())
+    params = vars(_cli_parser().parse_args())
 
     # read config file if available
     if params['config'] is not None:
@@ -210,4 +210,4 @@ def main():
 
 if __name__ == '__main__':
     raise RuntimeError("`niimasker/cli.py` should not be run directly. Please "
-                       "`pip install` rextract and use the `rextract` command.")
+                       "`pip install` niimasker and use the `niimasker` command.")
