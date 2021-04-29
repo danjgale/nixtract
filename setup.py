@@ -39,6 +39,9 @@ setup(
         'natsort>=7.1.1',
         'scipy>=1.5.0',
         'scikit-learn>=0.24.1',
+        'bctpy>=0.5.2',
+        'seaborn>=0.11.0',
+        'statsmodels>=0.12.2 ',
         'load_confounds>=0.11.1'
     ],
     tests_require=test_deps,
@@ -48,7 +51,8 @@ setup(
         'console_scripts': [
             'nixtract-nifti=nixtract.cli.nifti:main',
             'nixtract-gifti=nixtract.cli.gifti:main',
-            'nixtract-cifti=nixtract.cli.cifti:main'
+            'nixtract-cifti=nixtract.cli.cifti:main',
+            'nixtract-qc=nixtract.cli.qc:main'
             ]
     },
     classifiers=[
