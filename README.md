@@ -52,13 +52,13 @@ optional arguments:
                         extraction
   --roi_file ROI_FILE   Parameter that defines the region(s) of interest. This
                         can be 1) a file path to NIFTI image that is an atlas
-                        of multiple regions or a binary mask of one region, 2)
-                        a nilearn query string formatted as `nilearn:<atlas-
-                        name>:<atlas-parameters> 3) a file path to a .tsv file
-                        that has x, y, z columns that contain coordinates in
-                        MNI space. Refer to online documentation for more
-                        detail and how these options map onto the underlying
-                        nilearn masker classes
+                        of multiple regions, a probabilistic atlas, or a
+                        binary mask of one region, 2) a nilearn query string
+                        formatted as `nilearn:<atlas-name>:<atlas-parameters>
+                        3) a file path to a .tsv file that has x, y, z columns
+                        that contain coordinates in MNI space. Refer to online
+                        documentation for more detail and how these options
+                        map onto the underlying nilearn masker classes
   --mask_img MASK_IMG   File path of a binary mask a to be used when
                         `roi_file` is a) an multi-region atlas or b) a list of
                         coordinates. This will restrict extraction to only

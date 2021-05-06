@@ -40,7 +40,9 @@ import pandas as pd
 
 from nixtract.extractors.nifti_extractor import _set_volume_masker
 from nilearn.input_data import (NiftiLabelsMasker, NiftiMasker, 
-                                NiftiSpheresMasker)
+                                NiftiSpheresMasker,NiftiMapsMasker)
+from nilearn import datasets
+from scipy.stats import pearsonr
 
 
 def test_set_volume_masker(data_dir, mock_data):
@@ -50,6 +52,12 @@ def test_set_volume_masker(data_dir, mock_data):
         data_dir, 
         'Schaefer2018_100Parcels_7Networks''_order_FSLMNI152_2mm.nii.gz'
     )
+
+    atlas_prob = os.path.join(
+        data_dir, 
+        'difumo64.nii.gz'
+    )
+
     coordinates = os.path.join(
         data_dir,
         'Schaefer2018_100Parcels_7Networks_order_FSLMNI152_2mm.Centroid_XYZ.tsv'
@@ -70,6 +78,10 @@ def test_set_volume_masker(data_dir, mock_data):
     masker, n_rois = _set_volume_masker(coordinates)
     assert isinstance(masker, NiftiSpheresMasker)
     assert n_rois == 100
+
+    masker, n_rois = _set_volume_masker(atlas_prob)
+    assert isinstance(masker, NiftiMapsMasker)
+    assert n_rois == 64
 
     
 def test_mask(mock_data, tmpdir):
@@ -131,6 +143,45 @@ def test_coord_atlas(data_dir, mock_data, tmpdir):
 
     expected = np.tile(np.arange(1, 101), (10, 1))
     assert np.array_equal(actual.values, expected)
+
+
+def test_prob_atlas_shape(data_dir, mock_data, tmpdir):
+
+    difumo = 'difumo64.nii.gz'
+    roi_file = os.path.join(data_dir, difumo)
+    func = os.path.join(mock_data, 'schaefer_func.nii.gz')
+
+    cmd = (f"nixtract-nifti {tmpdir} --input_files {func} "
+           f"--roi_file {roi_file}")
+    subprocess.run(cmd.split())
+    actual = pd.read_table(os.path.join(tmpdir, 'schaefer_func_timeseries.tsv'))
+
+    assert actual.shape[1] == 64
+
+
+def test_prob_vs_label_atlas(data_dir, mock_data, tmpdir):
+
+    roi_file = os.path.join(data_dir, 'Schaefer2018_100Parcels_7Networks_order_FSLMNI152_2mm.nii.gz')
+    roi_file_prob = os.path.join(mock_data, 'schaefer_prob.nii.gz')
+    func = datasets.fetch_adhd(n_subjects=1, data_dir=str(tmpdir)).func[0]
+
+    os.mkdir(os.path.join(tmpdir, 'labels'))
+    os.mkdir(os.path.join(tmpdir, 'prob'))
+
+    cmd = (f"nixtract-nifti {tmpdir / 'labels'} --input_files {func} "
+           f"--roi_file {roi_file}")
+    subprocess.run(cmd.split())
+
+    cmd_prob = (f"nixtract-nifti {tmpdir / 'prob'} --input_files {func} "
+           f"--roi_file {roi_file_prob}")
+    subprocess.run(cmd_prob.split())
+
+    ts_name = '0010042_rest_tshift_RPI_voreg_mni_timeseries.tsv'
+    ts = pd.read_table(os.path.join(tmpdir, 'labels/' + ts_name)).to_numpy()
+    ts_prob = pd.read_table(os.path.join(tmpdir, 'prob/' + ts_name)).to_numpy()
+
+    for i in range(ts.shape[1]):
+        assert pearsonr(ts[:, i], ts_prob[:, i])[0] > 0.98
 
 
 def test_labels(data_dir, mock_data, tmpdir, nifti_label_config):

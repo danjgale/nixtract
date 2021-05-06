@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import nibabel as nib
 from nilearn.input_data import (NiftiMasker, NiftiSpheresMasker, 
-                                NiftiLabelsMasker)
+                                NiftiLabelsMasker, NiftiMapsMasker)
 from nilearn import image
 from nilearn.input_data.nifti_spheres_masker import _apply_mask_and_get_affinity
 
@@ -83,25 +83,31 @@ def _set_volume_masker(roi_file, as_voxels=False, **kwargs):
         if 'radius' in kwargs:
             kwargs.pop('radius')
         if 'allow_overlap' in kwargs:
-            kwargs.pop('allow_overlap')
+                kwargs.pop('allow_overlap')
     
         roi_img = image.load_img(roi_file)
-        n_rois = len(np.unique(roi_img.get_fdata())) - 1
-        print('  {} region(s) detected from {}'.format(n_rois,
-                                                       roi_img.get_filename()))
-        if n_rois > 1:
-            masker = NiftiLabelsMasker(roi_img, **kwargs)
-        elif n_rois == 1:
-            # binary mask for single ROI 
-            if as_voxels:
-                if 'mask_img' in kwargs:
-                    kwargs.pop('mask_img')
-                masker = NiftiMasker(roi_img, **kwargs)
-            else:
-                # more computationally efficient if only wanting the mean
-                masker = NiftiLabelsMasker(roi_img, **kwargs)
+        if len(roi_img.shape) == 4:
+            n_rois = roi_img.shape[-1]
+            print('  {} region(s) detected from {}'.format(n_rois,
+                                                        roi_img.get_filename()))
+            masker = NiftiMapsMasker(roi_img, allow_overlap=True,**kwargs)
         else:
-            raise ValueError('No ROI detected; check ROI file')
+            n_rois = len(np.unique(roi_img.get_fdata())) - 1
+            print('  {} region(s) detected from {}'.format(n_rois,
+                                                        roi_img.get_filename()))
+            if n_rois > 1:
+                masker = NiftiLabelsMasker(roi_img, **kwargs)
+            elif n_rois == 1:
+                # binary mask for single ROI 
+                if as_voxels:
+                    if 'mask_img' in kwargs:
+                        kwargs.pop('mask_img')
+                    masker = NiftiMasker(roi_img, **kwargs)
+                else:
+                    # more computationally efficient if only wanting the mean
+                    masker = NiftiLabelsMasker(roi_img, **kwargs)
+            else:
+                raise ValueError('No ROI detected; check ROI file')
     
     else:
         raise ValueError('Invalid file type for roi_file. Must be one of: '
@@ -170,6 +176,9 @@ class NiftiExtractor(BaseExtractor):
         elif isinstance(self.masker, NiftiSpheresMasker):
             return ['region{}'.format(int(i)) 
                     for i in np.arange(len(self.masker.seeds)) + 1]
+        elif isinstance(self.masker, NiftiMapsMasker):
+            return ['region{}'.format(int(i)) 
+                    for i in np.arange(self.masker.maps_img.shape[-1]) + 1]
 
     def discard_scans(self, n_scans):
         """Discard first N scans from data and regressors, if available 
@@ -216,3 +225,5 @@ class NiftiExtractor(BaseExtractor):
             return self.masker.labels_img
         elif isinstance(self.masker, NiftiSpheresMasker):
             return _get_spheres_from_masker(self.masker, self.img)
+        elif isinstance(self.masker, NiftiMapsMasker):
+            return self.masker.maps_img_ 
